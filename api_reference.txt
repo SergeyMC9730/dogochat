@@ -1,0 +1,67 @@
+API for protocol 1100
+
+SERVER STATES:
+    1 - Join to chat
+    2 - Send message
+    3 - Send file to user
+    4 - Server protocol
+    5 - Error occured on server side:
+        Reason 0 - Already connected to server
+
+1. Connect to WebSocket and send this message:
+    {
+        "state": 1,
+        "user": "your username"
+    }
+2. Wait for this response:
+    {
+        "state": 1
+    }
+   If you got this message:
+    {
+        "state": 5,
+        "reason": (number)
+    }
+   It means that server got error on joining process. Parse "reason" to get information.
+3. Server will also send his protocol version:
+    {
+        "state": 4,
+        "protocol": 1100
+    }
+   You should to check client protocol number or you may get some troubles
+
+Sending messages:
+    This is very easy. Just send this message to server:
+        {
+            "state": 2,
+            "message": "your message here"
+        }
+    Then server will send your message to all users connected to it with this response:
+        {
+            "state": 2,
+            "message": "server message"
+        }
+    Just print "message" cuz it already formatted on server side
+Sending files:
+    This is a bit difficult. First read file contents, get username to send file and filename:
+        {
+            "state": 3,
+            "data": "File contents in hex",
+            "user": "username or" null "if you want send file everyone",
+            "filename": "filename"
+        }
+    Others will get this server message:
+        {
+			state: 3,
+			data: "file contents in hex",
+			filename: "filename to save",
+			message: "message"
+        }
+Help command /api:
+    This is a secret command that may help you in bot developing. 
+    To get /api commands, send this message to chat: "/api"
+    Server will response with this: ["list","pcol"]
+
+    /api list response: [ users connected (number), [[ id (number), "user" ]]]
+    /api pcol <user> response: Username with color applied - useful for commands
+    /api pcol response: "not found"

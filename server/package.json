@@ -1,0 +1,7 @@
+{
+  "dependencies": {
+    "colors": "^1.4.0",
+    "utf-8-validate": "^5.0.8",
+    "ws": "^8.5.0"
+  }
+}
