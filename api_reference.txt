@@ -23,12 +23,12 @@ SERVER STATES:
         "reason": (number)
     }
    It means that server got error on joining process. Parse "reason" to get information.
-3. Server will also send his protocol version:
+3. Server also will send his protocol version:
     {
         "state": 4,
         "protocol": 1100
     }
-   You should to check client protocol number or you may get some troubles
+   You should to check client protocol number or you may get into some troubles
 
 Sending messages:
     This is very easy. Just send this message to server:
@@ -58,7 +58,7 @@ Sending files:
 			message: "message"
         }
 Help command /api:
-    This is a secret command that may help you in bot developing. 
+    This is a secret command that can help you in bot developing. 
     To get /api commands, send this message to chat: "/api"
     Server will response with this: ["list","pcol"]
 
