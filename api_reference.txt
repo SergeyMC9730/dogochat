@@ -1,4 +1,4 @@
-API for protocol 1100
+API for protocol 1200
 
 SERVER STATES:
     1 - Join to chat

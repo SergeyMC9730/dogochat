@@ -12,26 +12,30 @@ var colu = {
 var getUserFormatted = (name = "", col = 0) => {
 	return `${eval(`name.${cols[col]}`)}`;
 }
+var port = 10111;
+
 var sr = new ws.WebSocketServer({
-	port: 10111, perMessageDeflate: {
-		zlibDeflateOptions: {
+	//port: port, perMessageDeflate: {
+		// zlibDeflateOptions: {
 			// See zlib defaults.
-			chunkSize: 1024,
-			memLevel: 7,
-			level: 3
-		},
-		zlibInflateOptions: {
-			chunkSize: 8192
-		},
+			// chunkSize: 1024,
+			// memLevel: 7,
+			// level: 3
+		// },
+		// zlibInflateOptions: {
+			// chunkSize: 8192
+		// },
 		// Other options settable:
-		clientNoContextTakeover: true, // Defaults to negotiated value.
-		serverNoContextTakeover: true, // Defaults to negotiated value.
-		serverMaxWindowBits: 10, // Defaults to negotiated value.
+		// clientNoContextTakeover: true, // Defaults to negotiated value.
+		// serverNoContextTakeover: true, // Defaults to negotiated value.
+		// serverMaxWindowBits: 10, // Defaults to negotiated value.
 		// Below options specified as default values.
-		concurrencyLimit: 10, // Limits zlib concurrency for perf.
-		threshold: 1024 // Size (in bytes) below which messages
+		// concurrencyLimit: 10, // Limits zlib concurrency for perf.
+		// threshold: 1024 // Size (in bytes) below which messages
 		// should not be compressed if context takeover is disabled.
-	}
+	// }
+	port: port,
+	maxPayload: 128 * 1024 * 10124
 });
 var colors = require("colors");
 var wsclients = [];
@@ -49,14 +53,83 @@ colors.setTheme({
 	debug: 'blue',
 	error: 'red'
 });
+let parens = /\(([0-9+\-*/\^ .]+)\)/             // Regex for identifying parenthetical expressions
+let exp = /(\d+(?:\.\d+)?) ?\^ ?(\d+(?:\.\d+)?)/ // Regex for identifying exponentials (x ^ y)
+let mul = /(\d+(?:\.\d+)?) ?\* ?(\d+(?:\.\d+)?)/ // Regex for identifying multiplication (x * y)
+let div = /(\d+(?:\.\d+)?) ?\/ ?(\d+(?:\.\d+)?)/ // Regex for identifying division (x / y)
+let add = /(\d+(?:\.\d+)?) ?\+ ?(\d+(?:\.\d+)?)/ // Regex for identifying addition (x + y)
+let sub = /(\d+(?:\.\d+)?) ?- ?(\d+(?:\.\d+)?)/  // Regex for identifying subtraction (x - y)
+
+/**
+ * Evaluates a numerical expression as a string and returns a Number
+ * Follows standard PEMDAS operation ordering
+ * @param {String} expr Numerical expression input
+ * @returns {Number} Result of expression
+ */
+function evaluate(expr)
+{
+    if(isNaN(Number(expr)))
+    {
+        if(parens.test(expr))
+        {
+            let newExpr = expr.replace(parens, function(match, subExpr) {
+                return evaluate(subExpr);
+            });
+            return evaluate(newExpr);
+        }
+        else if(exp.test(expr))
+        {
+            let newExpr = expr.replace(exp, function(match, base, pow) {
+                return Math.pow(Number(base), Number(pow));
+            });
+            return evaluate(newExpr);
+        }
+        else if(mul.test(expr))
+        {
+            let newExpr = expr.replace(mul, function(match, a, b) {
+                return Number(a) * Number(b);
+            });
+            return evaluate(newExpr);
+        }
+        else if(div.test(expr))
+        {
+            let newExpr = expr.replace(div, function(match, a, b) {
+                if(b != 0)
+                    return Number(a) / Number(b);
+                else
+                    throw new Error('Division by zero');
+            });
+            return evaluate(newExpr);
+        }
+        else if(add.test(expr))
+        {
+            let newExpr = expr.replace(add, function(match, a, b) {
+                return Number(a) + Number(b);
+            });
+            return evaluate(newExpr);
+        }
+        else if(sub.test(expr))
+        {
+            let newExpr = expr.replace(sub, function(match, a, b) {
+                return Number(a) - Number(b);
+            });
+            return evaluate(newExpr);
+        }
+        else
+        {
+            return expr;
+        }
+    }
+    return Number(expr);
+}
 var foreignCols = {};
-console.log("Server is running".verbose);
+console.log(("Server is running at port " + port).verbose);
 sr.on("connection", (ws) => {
 	var id = Math.round(Math.random() * 0xFFFF);
 	var user;
 	ws.send(JSON.stringify({
 		state: 4,
-		protocol: 1100
+		protocol: 1200
 	}));
 	var block = false;
 	var isLogin = false;
@@ -140,6 +213,14 @@ sr.on("connection", (ws) => {
 							}));
 							break;
 						}
+						case "/calc": {
+							var e = args[1];
+							ws.send(JSON.stringify({
+								state: 2,
+								message: `${evaluate(e)}`
+							}));
+							break;
+						}
 						case "/api": {
 							console.log("API command".info);
 							switch(args[1]){
@@ -204,10 +285,10 @@ sr.on("connection", (ws) => {
 				var user2send = jsondata.user;
 				if (user2send === null) {
 					wsclients.forEach((s) => {
-						if (s != null || s[2] != user) {
+						if (s != null && s[2] != user) {
 							ws.send(JSON.stringify({
 								state: 2,
-								message: `Sending file for ${getUserFormatted(a[2], foreignCols[a[2]])}`.data
+								message: `Sending file for ${getUserFormatted(s[2], foreignCols[s[2]])}`.data
 							}));
 							s[1].send(JSON.stringify({
 								state: 3,
@@ -223,7 +304,7 @@ sr.on("connection", (ws) => {
 							if (s[2] == user2send) {
 								ws.send(JSON.stringify({
 									state: 2,
-									message: `Sending file for ${getUserFormatted(a[2], foreignCols[a[2]])}`.data
+									message: `Sending file for ${getUserFormatted(s[2], foreignCols[s[2]])}`.data
 								}));
 								s[1].send(JSON.stringify({
 									state: 3,
@@ -244,7 +325,7 @@ sr.on("connection", (ws) => {
 		switch (code) {
 			case 4000: {
 				wsclients.forEach((u) => {
-					if (u != null) {
+					if (u && u[1]) {
 						u[1].send(JSON.stringify({
 							state: 2,
 							message: `${getUserFormatted(user, foreignCols[user])} was disconnected for ${`outdated client`.verbose}`
@@ -258,10 +339,12 @@ sr.on("connection", (ws) => {
 			}
 			case 4002: {
 				wsclients.forEach((u) => {
-					u[1].send(JSON.stringify({
-						state: 2,
-						message: `${getUserFormatted(user, foreignCols[user])} was disconnected`
-					}));
+					if(u && u[1]) {
+						u[1].send(JSON.stringify({
+							state: 2,
+							message: `${getUserFormatted(user, foreignCols[user])} was disconnected`
+						}));
+					}
 				});
 				break;
 			}

@@ -8,7 +8,7 @@ var rli = rl.createInterface({
     output: process.stdout
 });
 var path = require("path");
-var protocol = 1100;
+var protocol = 1200;
 
 colors.setTheme({
     silly: 'rainbow',
@@ -24,13 +24,13 @@ colors.setTheme({
 });
 console.log(`
 RULES:
-    1. Don't send any ASCII arts. They are may break terminal session and notifications.
+    1. Don't send any ASCII arts. They are may break terminal session.
     2. Don't spam.
     3. Use nick like you're using in other chat apps (Discord, Telegram, etc.), 
        so that other people can understand who are you.
 
 ПРАВИЛА:
-    1. Не присылайте какие-либо ASCII арты. Они могут сломать сессию терминала, а также уведомления.
+    1. Не присылайте какие-либо ASCII арты. Они могут сломать сессию терминалa.
     2. Не спамьте.
     3. Используйте такой ник, какой Вы используете в других чатах (Discord, Telegram и т.д),
        чтобы другие пользователи могли понять, кто Вы такой.
@@ -43,7 +43,8 @@ rli.question("IP: ", (txt) => {
         var state = 0;
 
         var cl = new ws.WebSocket(`ws://${ip}`, {
-            perMessageDeflate: true
+		maxPayload: 128 * 1024 * 10124
+            // perMessageDeflate: true
         });
         cl.on("open", () => {
             state = 1;
