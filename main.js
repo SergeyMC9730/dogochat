@@ -8,7 +8,7 @@ var rli = rl.createInterface({
     output: process.stdout
 });
 var path = require("path");
-var protocol = 1200;
+var protocol = 1300;
 
 colors.setTheme({
     silly: 'rainbow',
@@ -42,6 +42,9 @@ rli.question("IP: ", (txt) => {
         console.log("Connecting...");
         var state = 0;
 
+	var sl = ip.split(":").length;
+	if(sl < 2) ip += ":10111";
+
         var cl = new ws.WebSocket(`ws://${ip}`, {
 		maxPayload: 128 * 1024 * 10124
             // perMessageDeflate: true
@@ -50,7 +53,8 @@ rli.question("IP: ", (txt) => {
             state = 1;
             cl.send(JSON.stringify({
                 state: state,
-                user: user
+                user: user,
+		id: Math.round(Math.random() * 65535)
             }));
         });
         cl.on("message", (data) => {
@@ -72,7 +76,7 @@ rli.question("IP: ", (txt) => {
                 case 4: {
                     console.log("Server protocol: %d", jsondata.protocol);
                     if(jsondata.protocol != protocol) {
-                        console.error("Your client is outdated! Please update client to %d", jsondata.protocol);
+                        console.error("Your client is outdated! Please update client to %d", jsondata.protocol / 1000);
                         cl.close(4000, user);
                         console.log("Disconnected");
                         process.exit(0);

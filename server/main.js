@@ -39,7 +39,7 @@ var sr = new ws.WebSocketServer({
 });
 var colors = require("colors");
 var wsclients = [];
-var protocol = 1100;
+var protocol = 1300;
 colors.enable();
 colors.setTheme({
 	silly: 'rainbow',
@@ -127,9 +127,10 @@ console.log(("Server is running at port " + port).verbose);
 sr.on("connection", (ws) => {
 	var id = Math.round(Math.random() * 0xFFFF);
 	var user;
+	var uid;
 	ws.send(JSON.stringify({
 		state: 4,
-		protocol: 1200
+		protocol: protocol
 	}));
 	var block = false;
 	var isLogin = false;
@@ -141,7 +142,7 @@ sr.on("connection", (ws) => {
 			case 1: {
 				wsclients.forEach((u) => {
 					if (u != null) {
-						if (u[2] === jsondata.user) {
+						if (u[2] == jsondata.user && u[3] == jsondata.id) {
 							ws.send(JSON.stringify({
 								state: 5,
 								reason: 0
@@ -150,8 +151,9 @@ sr.on("connection", (ws) => {
 						}
 					}
 				});
-				wsclients.push([id, ws, jsondata.user]);
+				wsclients.push([id, ws, jsondata.user, jsondata.id]);
 				user = jsondata.user;
+				uid  = jsondata.id;
 				foreignCols[user] = col;
 				console.log("User %s was successfully connected".info, user);
 				wsclients.forEach((s) => {
@@ -181,7 +183,7 @@ sr.on("connection", (ws) => {
 							});
 							ws.send(JSON.stringify({
 								state: 2,
-								message: `There are ${`${k.length} users`.info}: ${k.toString()}`
+								message: `There are ${`${k.length} ${(k.length == 1) ? "user" : "users"}`.info}: ${k.toString()}`
 							}));
 							break;
 						}
@@ -209,7 +211,7 @@ sr.on("connection", (ws) => {
 						case "/help": {
 							ws.send(JSON.stringify({
 								state: 2,
-								message: "\n$ help - help command\n$ upload <file path> <user (not required)> - send file to user\n$ list - list of connected users\n$ leave - disconnect from server\n$ color <color> - change username color"
+								message: "$ help - help command\n$ upload <file path> <user (not required)> - send file to user\n$ list - list of connected users\n$ leave - disconnect from server\n$ color <color> - change username color\n$ calc <evaluation> - calculator"
 							}));
 							break;
 						}
@@ -218,6 +220,13 @@ sr.on("connection", (ws) => {
 							ws.send(JSON.stringify({
 								state: 2,
 								message: `${evaluate(e)}`
+							}));
+							break;
+						}
+						default: {
+							ws.send(JSON.stringify({
+								state: 2,
+								message: "Unknown command!".red
 							}));
 							break;
 						}
@@ -285,7 +294,7 @@ sr.on("connection", (ws) => {
 				var user2send = jsondata.user;
 				if (user2send === null) {
 					wsclients.forEach((s) => {
-						if (s != null && s[2] != user) {
+						if (s != null) {
 							ws.send(JSON.stringify({
 								state: 2,
 								message: `Sending file for ${getUserFormatted(s[2], foreignCols[s[2]])}`.data
@@ -324,14 +333,6 @@ sr.on("connection", (ws) => {
 		console.log("%s was disconnected", user);
 		switch (code) {
 			case 4000: {
-				wsclients.forEach((u) => {
-					if (u && u[1]) {
-						u[1].send(JSON.stringify({
-							state: 2,
-							message: `${getUserFormatted(user, foreignCols[user])} was disconnected for ${`outdated client`.verbose}`
-						}));
-					}
-				});
 				break;
 			}
 			case 4001: {
@@ -342,7 +343,7 @@ sr.on("connection", (ws) => {
 					if(u && u[1]) {
 						u[1].send(JSON.stringify({
 							state: 2,
-							message: `${getUserFormatted(user, foreignCols[user])} was disconnected`
+							message: `${getUserFormatted(user, foreignCols[user])} disconnected from the server`
 						}));
 					}
 				});
@@ -352,7 +353,7 @@ sr.on("connection", (ws) => {
 		var i = 0;
 		wsclients.forEach((u) => {
 			if (u != null) {
-				if (u[2] == user) wsclients[i] = null;
+				if (u[2] == user && u[3] == uid) wsclients[i] = null;
 			}
 			i++;
 		});

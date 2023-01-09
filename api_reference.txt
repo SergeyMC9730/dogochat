@@ -1,4 +1,4 @@
-API for protocol 1200
+API for protocol 1300
 
 SERVER STATES:
     1 - Join to chat
@@ -12,6 +12,7 @@ SERVER STATES:
     {
         "state": 1,
         "user": "your username"
+	"id": 123456 # random number
     }
 2. Wait for this response:
     {
@@ -26,7 +27,7 @@ SERVER STATES:
 3. Server also will send his protocol version:
     {
         "state": 4,
-        "protocol": 1100
+        "protocol": 1300
     }
    You should to check client protocol number or you may get into some troubles
 
@@ -40,7 +41,7 @@ Sending messages:
         {
             "state": 2,
             "message": "server message"
-        }
+        }sb э
     Just print "message" cuz it already formatted on server side
 Sending files:
     This is a bit difficult. First read file contents, get username to send file and filename:
